@@ -1,0 +1,6 @@
+#compiled classes directory
+**/target/**
+
+#IntelliJ files
+*.iml
+**/.idea/**
