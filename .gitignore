@@ -1,6 +1,10 @@
 #compiled classes directory
 **/target/**
 
+#logs
+**/application-logs/**
+*.log
+
 #IntelliJ files
 *.iml
 **/.idea/**
