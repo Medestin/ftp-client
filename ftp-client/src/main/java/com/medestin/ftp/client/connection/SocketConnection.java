@@ -1,5 +1,7 @@
 package com.medestin.ftp.client.connection;
 
+import com.medestin.ftp.client.logger.FileLogger;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -9,7 +11,7 @@ import java.net.Socket;
 import java.util.logging.Logger;
 
 public class SocketConnection implements AutoCloseable {
-    private static final Logger log = Logger.getLogger(SocketConnection.class.getName());
+    private static final Logger logger = FileLogger.getLogger(SocketConnection.class.getName());
     private final String hostname;
     private final int port;
 
@@ -41,7 +43,7 @@ public class SocketConnection implements AutoCloseable {
 
     public void write(String message) {
         if (socket.isConnected()) {
-            log.info("Writing message: \"".concat(message).concat("\""));
+            logger.info("Writing message: \"".concat(message).concat("\""));
             try {
                 writer.write(message.concat(System.lineSeparator()));
                 writer.flush();
@@ -63,9 +65,9 @@ public class SocketConnection implements AutoCloseable {
                 throw new SocketConnectionException(
                         String.format("Exception while connecting to %s:%s", hostname, port), e);
             }
-            log.info(String.format("Established connection on %s:%s", hostname, port));
+            logger.info(String.format("Established connection on %s:%s", hostname, port));
         } else {
-            log.warning("Socket is already connected");
+            logger.warning("Socket is already connected");
         }
     }
 
@@ -74,6 +76,6 @@ public class SocketConnection implements AutoCloseable {
         reader.close();
         writer.close();
         socket.close();
-        log.info(String.format("Connection %s has been closed", socket.toString()));
+        logger.info(String.format("Connection %s has been closed", socket.toString()));
     }
 }
