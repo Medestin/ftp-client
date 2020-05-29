@@ -14,9 +14,14 @@ public class ClientFlow {
         int port = Integer.parseInt(ui.read());
 
         Connection connection = new Connection(hostname, port);
-        connection.connect();
+        connection.connect(x -> System.out.println("Feed: ".concat(x)));
+
         ui.write("Enter \"q\" to quit...");
-        while (!ui.read().equalsIgnoreCase("q"))
+        String userInput = ui.read();
+        while (!"q".equalsIgnoreCase(userInput)) {
+            userInput = ui.read();
+        }
+
         connection.close();
     }
 }

@@ -2,42 +2,44 @@ package com.medestin.ftp.client.utils.stream.reader;
 
 import com.medestin.ftp.client.utils.logger.FileLogger;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-public class ConcurrentStreamReader implements AutoCloseable {
-    private static final Logger logger = FileLogger.getLogger(ConcurrentStreamReader.class);
+public class PeriodicStringFeed implements AutoCloseable {
+    private static final Logger logger = FileLogger.getLogger(PeriodicStringFeed.class);
+    private static final String STARTED_FEED_MESSAGE = "Created & started and executor service feed";
+    private static final String CLASS_CLOSED = PeriodicStringFeed.class.getCanonicalName().concat(" closed.");
+    private static final String FEED_ALREADY_RUNNING = "Tried to start feed but it is already running";
     private static final long DELAY = 100L;
-    private final List<ExecutorService> executors;
 
-    public ConcurrentStreamReader() {
-        executors = new ArrayList<>();
+    private final ScheduledExecutorService executor;
+    private boolean isRunning;
+
+    public PeriodicStringFeed() {
+        this.executor = Executors.newSingleThreadScheduledExecutor();
     }
 
     public void feed(Supplier<String> supplier, Consumer<String> consumer) {
-        ScheduledExecutorService executorService = Executors.newSingleThreadScheduledExecutor();
-        executorService.scheduleAtFixedRate(runnable(supplier, consumer), 0L, DELAY, MILLISECONDS);
-        executors.add(executorService);
+        if(!isRunning) {
+            executor.scheduleAtFixedRate(runnable(supplier, consumer), 0L, DELAY, MILLISECONDS);
+            logger.info(STARTED_FEED_MESSAGE);
+            isRunning = true;
+        } else {
+            consumer.accept(FEED_ALREADY_RUNNING);
+            logger.info(FEED_ALREADY_RUNNING);
+        }
     }
 
     private Runnable runnable(Supplier<String> supplier, Consumer<String> consumer) {
         return () -> {
             String string = supplier.get();
-            if(string != null && !"".equalsIgnoreCase(string)) {
+            if (string != null && !"".equalsIgnoreCase(string)) {
                 consumer.accept(string);
             }
         };
@@ -45,9 +47,8 @@ public class ConcurrentStreamReader implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        for (ExecutorService executor : executors) {
-            executor.shutdown();
-            executor.awaitTermination(5, SECONDS);
-        }
+        executor.shutdown();
+        executor.awaitTermination(5, SECONDS);
+        logger.info(CLASS_CLOSED);
     }
 }
