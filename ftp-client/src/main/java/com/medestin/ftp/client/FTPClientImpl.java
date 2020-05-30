@@ -4,7 +4,6 @@ import com.medestin.ftp.client.connection.ConnectionManager;
 import com.medestin.ftp.client.connection.ServerResponse;
 
 import java.io.PrintStream;
-import java.util.Optional;
 
 public class FTPClientImpl implements FTPClient {
     private final static int COMMAND_PORT = 21;
@@ -21,8 +20,23 @@ public class FTPClientImpl implements FTPClient {
 
     @Override
     public boolean logIn(String username, String password) {
+        if (connect()) {
+            ServerResponse userResponse = commandConnection.sendAndReceive("USER ".concat(username));
+            if (userResponse.getCode() == 331) {
+                userResponse.getMessage().ifPresent(out::println);
+                ServerResponse passResponse = commandConnection.sendAndReceive("PASS ".concat(password));
+                if (passResponse.getCode() == 230) {
+                    passResponse.getMessage().ifPresent(out::println);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean connect() {
         ServerResponse response = commandConnection.connect();
-        if(response.getCode() == 220) {
+        if (response.getCode() == 220) {
             out.println("Successfully connected to server...");
             response.getMessage().ifPresent(out::println);
             return true;

@@ -33,11 +33,13 @@ public final class SocketManager implements AutoCloseable{
     }
 
     public void send(String message) {
-        writer.println(message);
+        writer.print(message);
+        writer.flush();
     }
 
     public String receive() throws SocketManagerException {
         try {
+            Thread.sleep(100);
             if(reader.ready()) {
                 return reader.readLine();
             } else {
@@ -45,6 +47,9 @@ public final class SocketManager implements AutoCloseable{
             }
         } catch (IOException e) {
             logger.log(WARNING, COULD_NOT_RECEIVE, e);
+            throw new SocketManagerException(COULD_NOT_RECEIVE, e);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
             throw new SocketManagerException(COULD_NOT_RECEIVE, e);
         }
     }
