@@ -1,4 +1,4 @@
-package com.medestin.ftp.client.utils.logger;
+package com.medestin.ftp.utils.logger;
 
 import java.io.File;
 import java.io.IOException;

@@ -1,4 +1,4 @@
-package com.medestin.ftp.client;
+package com.medestin.ftp;
 
 public class Main {
 
