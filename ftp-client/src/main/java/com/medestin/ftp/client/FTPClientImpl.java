@@ -1,24 +1,37 @@
 package com.medestin.ftp.client;
 
-import com.medestin.ftp.client.connection.CommandSocketManager;
+import com.medestin.ftp.client.connection.ConnectionManager;
+import com.medestin.ftp.client.connection.ServerResponse;
+
+import java.io.PrintStream;
+import java.util.Optional;
 
 public class FTPClientImpl implements FTPClient {
     private final static int COMMAND_PORT = 21;
+    private final PrintStream out;
+
     private final String hostname;
-    private final CommandSocketManager commandSocket;
+    private final ConnectionManager commandConnection;
 
     public FTPClientImpl(String hostname) {
         this.hostname = hostname;
-        this.commandSocket = new CommandSocketManager(hostname, COMMAND_PORT);
+        this.commandConnection = new ConnectionManager(hostname, COMMAND_PORT);
+        this.out = System.out;
     }
-
-
-    //TODO: Implement all below!
 
     @Override
     public boolean logIn(String username, String password) {
-        return false;
+        ServerResponse response = commandConnection.connect();
+        if(response.getCode() == 220) {
+            out.println("Successfully connected to server...");
+            response.getMessage().ifPresent(out::println);
+            return true;
+        } else {
+            return false;
+        }
     }
+
+    //TODO: Implement all below!
 
     @Override
     public String showDirectory() {
