@@ -1,6 +1,6 @@
 package com.medestin.ftp.client;
 
-import com.medestin.ftp.connection.CommandSocketManager;
+import com.medestin.ftp.client.connection.CommandSocketManager;
 
 public class FTPClientImpl implements FTPClient {
     private final static int COMMAND_PORT = 21;

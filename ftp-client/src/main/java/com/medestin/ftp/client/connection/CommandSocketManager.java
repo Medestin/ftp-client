@@ -1,4 +1,4 @@
-package com.medestin.ftp.connection;
+package com.medestin.ftp.client.connection;
 
 import java.net.InetSocketAddress;
 import java.net.Socket;
