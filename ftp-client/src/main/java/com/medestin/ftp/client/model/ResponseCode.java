@@ -7,6 +7,10 @@ public enum ResponseCode {
      */
     READY(220),
     /**
+     * 229 : Entering Extended Passive Mode (|||port|).
+     */
+    ENTERED_EPSV(229),
+    /**
      * 230 : User logged in, proceed
      */
     LOGGED_IN(230),

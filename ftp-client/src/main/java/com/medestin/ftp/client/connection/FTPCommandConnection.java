@@ -66,6 +66,11 @@ public class FTPCommandConnection implements AutoCloseable {
         return fromLine(readAll());
     }
 
+    public CommandResponse passiveMode() {
+        commandSocket.writeLine(EPSV.command());
+        return fromLine(readAll());
+    }
+
     private CommandResponse retrieveWelcomeMessage() {
         return fromLine(readAll());
     }

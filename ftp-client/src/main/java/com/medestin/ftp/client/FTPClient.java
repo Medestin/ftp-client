@@ -7,14 +7,14 @@ import com.medestin.ftp.utils.logger.FileLogger;
 import java.io.PrintStream;
 import java.util.logging.Logger;
 
-import static com.medestin.ftp.client.model.ResponseCode.LOGGED_IN;
-import static com.medestin.ftp.client.model.ResponseCode.NEED_PASSWORD;
+import static com.medestin.ftp.client.model.ResponseCode.*;
 
 public class FTPClient implements AutoCloseable {
     private static final Logger logger = FileLogger.getLogger(FTPClient.class);
     private final PrintStream out;
 
     private final FTPCommandConnection commandConnection;
+    private int passivePort;
 
     public FTPClient() {
         this.out = System.out;
@@ -37,7 +37,17 @@ public class FTPClient implements AutoCloseable {
     }
 
     public void currentLocation() {
-        out.println(commandConnection.directory());
+        out.println(commandConnection.directory().message);
+    }
+
+    public void enterPassiveMode() {
+        CommandResponse response = commandConnection.passiveMode();
+        if(response.code == ENTERED_EPSV.code()) {
+            String[] split = response.message.split("\\|\\|\\|");
+            int port = Integer.parseInt(split[1].substring(0, split[1].length()-2));
+            passivePort = port;
+            out.println(response.message);
+        }
     }
 
     @Override

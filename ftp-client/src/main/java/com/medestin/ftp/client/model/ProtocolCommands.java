@@ -2,6 +2,7 @@ package com.medestin.ftp.client.model;
 
 public enum ProtocolCommands {
 
+    EPSV("EPSV"),
     USER("USER"),
     PASS("PASS"),
     PWD("PWD");
