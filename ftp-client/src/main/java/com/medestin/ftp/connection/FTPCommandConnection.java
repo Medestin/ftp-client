@@ -1,5 +1,6 @@
 package com.medestin.ftp.connection;
 
+import com.medestin.ftp.client.FTPClientException;
 import com.medestin.ftp.utils.feed.FeedHandler;
 import com.medestin.ftp.utils.logger.FileLogger;
 import com.medestin.ftp.utils.socket.SocketConnectionException;
@@ -9,6 +10,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Logger;
 
+import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.logging.Level.SEVERE;
 
@@ -18,17 +20,57 @@ public class FTPCommandConnection implements AutoCloseable {
     private static final int QUEUE_CAPACITY = 5;
     private static final long SLEEP_TIME_MILLIS = 120;
 
-    private final SocketManager commandSocket;
-    private final FeedHandler feed;
+    private SocketManager commandSocket;
+    private FeedHandler feed;
     private final BlockingQueue<String> responseQueue;
 
-    public FTPCommandConnection(String hostname) throws SocketConnectionException {
-        this.commandSocket = new SocketManager(hostname, DEFAULT_PORT);
-        this.feed = new FeedHandler(commandSocket::readLine, this::consumeFeed);
+    public FTPCommandConnection() {
         this.responseQueue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
     }
 
-    public String readLineOrWait() {
+    public CommandConnectionResponse connect(String hostname) {
+        try {
+            close();
+        } catch (Exception e) {
+            String errorMessage = "Exception thrown while closing resources";
+            FTPCommandConnectionException ftpCommandConnectionException = new FTPCommandConnectionException(errorMessage, e);
+            logger.log(SEVERE, errorMessage, ftpCommandConnectionException);
+            throw ftpCommandConnectionException;
+        }
+        try {
+            commandSocket = new SocketManager(hostname, DEFAULT_PORT);
+            this.feed = new FeedHandler(commandSocket::readLine, this::consumeFeed);
+            logger.info(format("Successfully connected to %s", hostname));
+            return retrieveWelcomeMessage();
+        } catch (SocketConnectionException e) {
+            String errorMessage = format("Failed trying to connect to %s", hostname);
+            logger.warning(errorMessage);
+            throw new FTPCommandConnectionException(errorMessage);
+        }
+    }
+
+    private CommandConnectionResponse retrieveWelcomeMessage() {
+        StringBuilder sb = new StringBuilder();
+        String line = readLineOrWait();
+        int code = Integer.parseInt(line.substring(0, 3));
+        if (code == 220) {
+            sb.append(line);
+            String peek = checkForResponses();
+            while (!"".equals(peek) && Integer.parseInt(peek.substring(0, 3)) == 220) {
+                line = readLineOrWait();
+                sb.append("\n").append(line);
+                peek = checkForResponses();
+            }
+            return new CommandConnectionResponse(code, sb.toString());
+        } else {
+            String errorMessage = format("Received '%s' code while connecting", code);
+            logger.severe(errorMessage);
+            throw new FTPClientException(errorMessage);
+        }
+    }
+
+
+    private String readLineOrWait() {
         try {
             String line = responseQueue.poll(150, MILLISECONDS);
             return line != null ? line : "";
@@ -40,9 +82,9 @@ public class FTPCommandConnection implements AutoCloseable {
         }
     }
 
-    public String checkForResponses() {
+    private String checkForResponses() {
         String peek = responseQueue.peek();
-        if(peek == null) {
+        if (peek == null) {
             trySleep();
         }
         peek = responseQueue.peek();
@@ -73,7 +115,13 @@ public class FTPCommandConnection implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        feed.close();
-        commandSocket.close();
+        if (feed != null) {
+            logger.info("Closing feed resource");
+            feed.close();
+        }
+        if (commandSocket != null) {
+            logger.info("Closing command socket resource");
+            commandSocket.close();
+        }
     }
 }
