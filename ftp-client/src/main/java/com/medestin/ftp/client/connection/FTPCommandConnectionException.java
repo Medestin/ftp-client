@@ -1,4 +1,4 @@
-package com.medestin.ftp.connection;
+package com.medestin.ftp.client.connection;
 
 public class FTPCommandConnectionException extends RuntimeException {
     public FTPCommandConnectionException(String message) {

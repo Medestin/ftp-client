@@ -1,4 +1,4 @@
-package com.medestin.ftp.connection;
+package com.medestin.ftp.client.connection;
 
 public class CommandConnectionResponse {
     public final int code;

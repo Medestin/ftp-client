@@ -1,4 +1,4 @@
-package com.medestin.ftp.connection;
+package com.medestin.ftp.client.connection;
 
 import com.medestin.ftp.client.FTPClientException;
 import com.medestin.ftp.utils.feed.FeedHandler;

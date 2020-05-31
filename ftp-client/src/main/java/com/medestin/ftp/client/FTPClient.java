@@ -1,7 +1,7 @@
 package com.medestin.ftp.client;
 
-import com.medestin.ftp.connection.CommandConnectionResponse;
-import com.medestin.ftp.connection.FTPCommandConnection;
+import com.medestin.ftp.client.connection.CommandConnectionResponse;
+import com.medestin.ftp.client.connection.FTPCommandConnection;
 import com.medestin.ftp.utils.logger.FileLogger;
 
 import java.io.PrintStream;
