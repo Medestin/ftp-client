@@ -7,7 +7,8 @@ public class Main {
     public static void main(String[] args) throws Exception {
         FTPClient client = new FTPClient();
         client.connect("localhost");
-
+        client.logIn("user", "password");
+        
         client.close();
     }
 }

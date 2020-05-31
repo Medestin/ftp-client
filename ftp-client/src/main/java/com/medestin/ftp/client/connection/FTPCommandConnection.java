@@ -30,7 +30,7 @@ public class FTPCommandConnection implements AutoCloseable {
         this.responseQueue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
     }
 
-    public CommandConnectionResponse connect(String hostname) {
+    public CommandResponse connect(String hostname) {
         try {
             close();
         } catch (Exception e) {
@@ -51,7 +51,21 @@ public class FTPCommandConnection implements AutoCloseable {
         }
     }
 
-    private CommandConnectionResponse retrieveWelcomeMessage() {
+    public CommandResponse user(String username) {
+        commandSocket.writeLine("USER ".concat(username));
+        String response = readLineOrWait();
+        int code = Integer.parseInt(response.substring(0, 3));
+        return new CommandResponse(code, response);
+    }
+
+    public CommandResponse password(String password) {
+        commandSocket.writeLine("PASS ".concat(password));
+        String response = readLineOrWait();
+        int code = Integer.parseInt(response.substring(0, 3));
+        return new CommandResponse(code, response);
+    }
+
+    private CommandResponse retrieveWelcomeMessage() {
         StringBuilder sb = new StringBuilder();
         String line = readLineOrWait();
         int code = Integer.parseInt(line.substring(0, 3));
@@ -63,7 +77,7 @@ public class FTPCommandConnection implements AutoCloseable {
                 sb.append("\n").append(line);
                 peek = checkForResponses();
             }
-            return new CommandConnectionResponse(code, sb.toString());
+            return new CommandResponse(code, sb.toString());
         } else {
             String errorMessage = format("Received '%s' code while connecting", code);
             logger.severe(errorMessage);

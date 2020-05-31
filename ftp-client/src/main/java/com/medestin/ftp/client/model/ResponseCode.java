@@ -2,22 +2,27 @@ package com.medestin.ftp.client.model;
 
 public enum ResponseCode {
 
-    READY(220, "Service ready for new user");
+    /**
+     * 220 : Service ready for new user
+     */
+    READY(220),
+    /**
+     * 230 : User logged in, proceed
+     */
+    LOGGED_IN(230),
+    /**
+     * 331 : User okay, need password
+     */
+    NEED_PASSWORD(331);
 
-    ResponseCode(int code, String description) {
+    ResponseCode(int code) {
         this.code = code;
-        this.description = description;
     }
 
     private final int code;
-    private final String description;
 
     public int code() {
         return code;
-    }
-
-    public String description() {
-        return description;
     }
 
     public ResponseCode getByCode(int code) {
