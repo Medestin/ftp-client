@@ -8,7 +8,8 @@ public class Main {
         FTPClient client = new FTPClient();
         client.connect("localhost");
         client.logIn("user", "password");
-        
+        client.currentLocation();
+
         client.close();
     }
 }

@@ -36,6 +36,10 @@ public class FTPClient implements AutoCloseable {
         }
     }
 
+    public void currentLocation() {
+        out.println(commandConnection.directory());
+    }
+
     @Override
     public void close() throws Exception {
         commandConnection.close();

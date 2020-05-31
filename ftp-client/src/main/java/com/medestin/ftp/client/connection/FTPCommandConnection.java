@@ -1,6 +1,5 @@
 package com.medestin.ftp.client.connection;
 
-import com.medestin.ftp.client.model.ProtocolCommands;
 import com.medestin.ftp.utils.feed.FeedHandler;
 import com.medestin.ftp.utils.logger.FileLogger;
 import com.medestin.ftp.utils.socket.SocketConnectionException;
@@ -12,8 +11,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Logger;
 
-import static com.medestin.ftp.client.model.ProtocolCommands.PASS;
-import static com.medestin.ftp.client.model.ProtocolCommands.USER;
+import static com.medestin.ftp.client.model.ProtocolCommands.*;
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.logging.Level.SEVERE;
@@ -60,6 +58,11 @@ public class FTPCommandConnection implements AutoCloseable {
 
     public CommandResponse password(String password) {
         commandSocket.writeLine(String.join(" ", PASS.command(), password));
+        return fromLine(readAll());
+    }
+
+    public CommandResponse directory() {
+        commandSocket.writeLine(PWD.command());
         return fromLine(readAll());
     }
 

@@ -3,7 +3,8 @@ package com.medestin.ftp.client.model;
 public enum ProtocolCommands {
 
     USER("USER"),
-    PASS("PASS");
+    PASS("PASS"),
+    PWD("PWD");
 
     private final String command;
 

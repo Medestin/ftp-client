@@ -11,6 +11,10 @@ public enum ResponseCode {
      */
     LOGGED_IN(230),
     /**
+     * 257 : "PATHNAME" created
+     */
+    PATHNAME_CREATED(257),
+    /**
      * 331 : User okay, need password
      */
     NEED_PASSWORD(331);
