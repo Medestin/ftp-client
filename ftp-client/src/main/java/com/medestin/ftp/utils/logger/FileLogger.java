@@ -23,10 +23,6 @@ public class FileLogger {
 
     public static Logger getLogger(String name) {
         Logger logger = Logger.getLogger(name);
-        if (!FILE_DIRECTORY.exists()) {
-            //noinspection ResultOfMethodCallIgnored
-            FILE_DIRECTORY.mkdir();
-        }
         if(FILE_HANDLER != null) {
             logger.addHandler(FILE_HANDLER);
             logger.setUseParentHandlers(false);
@@ -35,12 +31,20 @@ public class FileLogger {
     }
 
     private static Handler fileHandler() {
+        createDirectoryIfNotExists();
         try {
             return new FileHandler(LOGS_DIRECTORY.concat(LOGS_FILENAME).concat(LOGS_EXTENSION), true);
         } catch (IOException e) {
             Logger.getLogger(FileLogger.class.getName()).warning(FILE_LOGGER_ERROR_MESSAGE);
             e.printStackTrace();
             return null;
+        }
+    }
+
+    private static void createDirectoryIfNotExists() {
+        if (!FILE_DIRECTORY.exists()) {
+            //noinspection ResultOfMethodCallIgnored
+            FILE_DIRECTORY.mkdir();
         }
     }
 
