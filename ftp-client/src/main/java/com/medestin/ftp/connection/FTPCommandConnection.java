@@ -18,6 +18,7 @@ public class FTPCommandConnection implements AutoCloseable {
     private final Logger logger = FileLogger.getLogger(FTPCommandConnection.class);
     private static final int DEFAULT_PORT = 21;
     private static final int QUEUE_CAPACITY = 5;
+    private static final long QUEUE_POLL_TIMEOUT_MILLIS = 150;
     private static final long SLEEP_TIME_MILLIS = 120;
 
     private SocketManager commandSocket;
@@ -69,10 +70,9 @@ public class FTPCommandConnection implements AutoCloseable {
         }
     }
 
-
     private String readLineOrWait() {
         try {
-            String line = responseQueue.poll(150, MILLISECONDS);
+            String line = responseQueue.poll(QUEUE_POLL_TIMEOUT_MILLIS, MILLISECONDS);
             return line != null ? line : "";
         } catch (InterruptedException e) {
             String errorMessage = "Exception while reading message from queue";
