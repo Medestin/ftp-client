@@ -16,20 +16,21 @@ public class FTPCommandConnection implements AutoCloseable {
     private final Logger logger = FileLogger.getLogger(FTPCommandConnection.class);
     private static final int DEFAULT_PORT = 21;
     private static final int QUEUE_CAPACITY = 5;
+    private static final long SLEEP_TIME_MILLIS = 120;
 
     private final SocketManager commandSocket;
     private final FeedHandler feed;
     private final BlockingQueue<String> responseQueue;
 
-    public FTPCommandConnection(String localhost) throws SocketConnectionException {
-        this.commandSocket = new SocketManager(localhost, DEFAULT_PORT);
+    public FTPCommandConnection(String hostname) throws SocketConnectionException {
+        this.commandSocket = new SocketManager(hostname, DEFAULT_PORT);
         this.feed = new FeedHandler(commandSocket::readLine, this::consumeFeed);
         this.responseQueue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
     }
 
     public String readLineOrWait() {
         try {
-            String line = responseQueue.poll(200, MILLISECONDS);
+            String line = responseQueue.poll(150, MILLISECONDS);
             return line != null ? line : "";
         } catch (InterruptedException e) {
             String errorMessage = "Exception while reading message from queue";
@@ -38,6 +39,26 @@ public class FTPCommandConnection implements AutoCloseable {
             throw ftpCommandConnectionException;
         }
     }
+
+    public String checkForResponses() {
+        String peek = responseQueue.peek();
+        if(peek == null) {
+            trySleep();
+        }
+        peek = responseQueue.peek();
+        return peek != null ? peek : "";
+    }
+
+    private void trySleep() {
+        try {
+            Thread.sleep(SLEEP_TIME_MILLIS);
+        } catch (InterruptedException e) {
+            String errorMessage = "Exception thrown while sleeping";
+            logger.severe(errorMessage);
+            throw new FTPCommandConnectionException(errorMessage);
+        }
+    }
+
 
     private void consumeFeed(String feed) {
         try {
