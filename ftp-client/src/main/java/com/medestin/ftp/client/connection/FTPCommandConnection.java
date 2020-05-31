@@ -1,16 +1,19 @@
 package com.medestin.ftp.client.connection;
 
-import com.medestin.ftp.client.FTPClientException;
+import com.medestin.ftp.client.model.ProtocolCommands;
 import com.medestin.ftp.utils.feed.FeedHandler;
 import com.medestin.ftp.utils.logger.FileLogger;
 import com.medestin.ftp.utils.socket.SocketConnectionException;
 import com.medestin.ftp.utils.socket.SocketManager;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Logger;
 
-import static com.medestin.ftp.client.model.ResponseCode.READY;
+import static com.medestin.ftp.client.model.ProtocolCommands.PASS;
+import static com.medestin.ftp.client.model.ProtocolCommands.USER;
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.logging.Level.SEVERE;
@@ -20,7 +23,6 @@ public class FTPCommandConnection implements AutoCloseable {
     private static final int DEFAULT_PORT = 21;
     private static final int QUEUE_CAPACITY = 5;
     private static final long QUEUE_POLL_TIMEOUT_MILLIS = 150;
-    private static final long SLEEP_TIME_MILLIS = 120;
 
     private SocketManager commandSocket;
     private FeedHandler feed;
@@ -52,37 +54,32 @@ public class FTPCommandConnection implements AutoCloseable {
     }
 
     public CommandResponse user(String username) {
-        commandSocket.writeLine("USER ".concat(username));
-        String response = readLineOrWait();
-        int code = Integer.parseInt(response.substring(0, 3));
-        return new CommandResponse(code, response);
+        commandSocket.writeLine(String.join(" ", USER.command(), username));
+        return fromLine(readAll());
     }
 
     public CommandResponse password(String password) {
-        commandSocket.writeLine("PASS ".concat(password));
-        String response = readLineOrWait();
-        int code = Integer.parseInt(response.substring(0, 3));
-        return new CommandResponse(code, response);
+        commandSocket.writeLine(String.join(" ", PASS.command(), password));
+        return fromLine(readAll());
     }
 
     private CommandResponse retrieveWelcomeMessage() {
-        StringBuilder sb = new StringBuilder();
-        String line = readLineOrWait();
+        return fromLine(readAll());
+    }
+
+    private CommandResponse fromLine(String line) {
         int code = Integer.parseInt(line.substring(0, 3));
-        if (code == READY.code()) {
-            sb.append(line);
-            String peek = checkForResponses();
-            while (!"".equals(peek) && Integer.parseInt(peek.substring(0, 3)) == READY.code()) {
-                line = readLineOrWait();
-                sb.append("\n").append(line);
-                peek = checkForResponses();
-            }
-            return new CommandResponse(code, sb.toString());
-        } else {
-            String errorMessage = format("Received '%s' code while connecting", code);
-            logger.severe(errorMessage);
-            throw new FTPClientException(errorMessage);
+        return new CommandResponse(code, line);
+    }
+
+    private String readAll() {
+        List<String> lines = new ArrayList<>();
+        String line = readLineOrWait();
+        while (!"".equals(line)) {
+            lines.add(line);
+            line = readLineOrWait();
         }
+        return String.join("\n", lines);
     }
 
     private String readLineOrWait() {
@@ -94,25 +91,6 @@ public class FTPCommandConnection implements AutoCloseable {
             FTPCommandConnectionException ftpCommandConnectionException = new FTPCommandConnectionException(errorMessage, e);
             logger.log(SEVERE, errorMessage, ftpCommandConnectionException);
             throw ftpCommandConnectionException;
-        }
-    }
-
-    private String checkForResponses() {
-        String peek = responseQueue.peek();
-        if (peek == null) {
-            trySleep();
-        }
-        peek = responseQueue.peek();
-        return peek != null ? peek : "";
-    }
-
-    private void trySleep() {
-        try {
-            Thread.sleep(SLEEP_TIME_MILLIS);
-        } catch (InterruptedException e) {
-            String errorMessage = "Exception thrown while sleeping";
-            logger.severe(errorMessage);
-            throw new FTPCommandConnectionException(errorMessage);
         }
     }
 
