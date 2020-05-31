@@ -10,6 +10,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.logging.Logger;
 
+import static com.medestin.ftp.client.model.ResponseCode.READY;
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.logging.Level.SEVERE;
@@ -54,10 +55,10 @@ public class FTPCommandConnection implements AutoCloseable {
         StringBuilder sb = new StringBuilder();
         String line = readLineOrWait();
         int code = Integer.parseInt(line.substring(0, 3));
-        if (code == 220) {
+        if (code == READY.code()) {
             sb.append(line);
             String peek = checkForResponses();
-            while (!"".equals(peek) && Integer.parseInt(peek.substring(0, 3)) == 220) {
+            while (!"".equals(peek) && Integer.parseInt(peek.substring(0, 3)) == READY.code()) {
                 line = readLineOrWait();
                 sb.append("\n").append(line);
                 peek = checkForResponses();
