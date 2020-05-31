@@ -101,7 +101,6 @@ public class FTPCommandConnection implements AutoCloseable {
         }
     }
 
-
     private void consumeFeed(String feed) {
         try {
             responseQueue.put(feed);
@@ -116,12 +115,12 @@ public class FTPCommandConnection implements AutoCloseable {
     @Override
     public void close() throws Exception {
         if (feed != null) {
-            logger.info("Closing feed resource");
             feed.close();
+            logger.info("Closed feed");
         }
         if (commandSocket != null) {
-            logger.info("Closing command socket resource");
             commandSocket.close();
+            logger.info("Closed command socket");
         }
     }
 }

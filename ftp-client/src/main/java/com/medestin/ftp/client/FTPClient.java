@@ -26,5 +26,6 @@ public class FTPClient implements AutoCloseable {
     @Override
     public void close() throws Exception {
         commandConnection.close();
+        logger.info("Closed command connection");
     }
 }

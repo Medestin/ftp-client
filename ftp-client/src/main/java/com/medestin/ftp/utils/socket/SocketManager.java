@@ -67,5 +67,6 @@ public class SocketManager implements AutoCloseable {
         socket.close();
         reader.close();
         writer.close();
+        logger.info("Closed socket and its streams");
     }
 }

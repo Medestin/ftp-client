@@ -42,5 +42,6 @@ public class FeedHandler implements AutoCloseable {
     public void close() throws Exception {
         executorService.shutdown();
         executorService.awaitTermination(AWAIT_TERMINATION_TIME_MILLIS, MILLISECONDS);
+        logger.info("Shut down executor service");
     }
 }
