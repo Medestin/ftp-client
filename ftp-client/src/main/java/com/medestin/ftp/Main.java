@@ -9,8 +9,8 @@ public class Main {
         client.connect("localhost");
         client.logIn("user", "password");
         client.currentLocation();
-        client.enterPassiveMode();
         client.list();
+        client.retrieve("example.txt");
 
         client.close();
     }

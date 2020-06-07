@@ -76,7 +76,20 @@ public class FTPCommandConnection implements AutoCloseable {
         return fromLine(readAll());
     }
 
+    public CommandResponse retrieve(String filename) {
+        commandSocket.writeLine(String.join(" ", RETR.command(), filename));
+        return fromLine(readAll());
+    }
+
     public CommandResponse passiveMode() {
+        try {
+            closePassive();
+        } catch (Exception e) {
+            String errorMessage = "Couldn't close previous passive port...";
+            FTPCommandConnectionException ftpCommandConnectionException = new FTPCommandConnectionException(errorMessage, e);
+            logger.log(SEVERE, errorMessage, ftpCommandConnectionException);
+            throw ftpCommandConnectionException;
+        }
         commandSocket.writeLine(EPSV.command());
         CommandResponse response = fromLine(readAll());
         if(response.code == ENTERED_EPSV.code()) {
@@ -150,6 +163,10 @@ public class FTPCommandConnection implements AutoCloseable {
             commandSocket.close();
             logger.info("Closed command socket");
         }
+        closePassive();
+    }
+
+    public void closePassive() throws Exception {
         if (passiveFeed != null) {
             passiveFeed.close();
             logger.info("Closed passive feed");

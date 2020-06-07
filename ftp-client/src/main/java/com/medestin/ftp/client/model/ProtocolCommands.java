@@ -6,6 +6,7 @@ public enum ProtocolCommands {
     MLSD("MLSD"),
     PASS("PASS"),
     PWD("PWD"),
+    RETR("RETR"),
     USER("USER");
 
     private final String command;

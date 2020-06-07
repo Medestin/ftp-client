@@ -7,7 +7,8 @@ import com.medestin.ftp.utils.logger.FileLogger;
 import java.io.PrintStream;
 import java.util.logging.Logger;
 
-import static com.medestin.ftp.client.model.ResponseCode.*;
+import static com.medestin.ftp.client.model.ResponseCode.LOGGED_IN;
+import static com.medestin.ftp.client.model.ResponseCode.NEED_PASSWORD;
 
 public class FTPClient implements AutoCloseable {
     private static final Logger logger = FileLogger.getLogger(FTPClient.class);
@@ -27,9 +28,9 @@ public class FTPClient implements AutoCloseable {
 
     public void logIn(String username, String password) {
         CommandResponse response = commandConnection.user(username);
-        if(response.code == NEED_PASSWORD.code()) {
+        if (response.code == NEED_PASSWORD.code()) {
             response = commandConnection.password(password);
-            if(response.code == LOGGED_IN.code()) {
+            if (response.code == LOGGED_IN.code()) {
                 out.println("Logged in!");
             }
         }
@@ -40,10 +41,16 @@ public class FTPClient implements AutoCloseable {
     }
 
     public void list() {
-       out.println(commandConnection.list().message);
+        enterPassiveMode();
+        out.println(commandConnection.list().message);
     }
 
-    public void enterPassiveMode() {
+    public void retrieve(String filename) {
+        enterPassiveMode();
+        out.println(commandConnection.retrieve(filename));
+    }
+
+    private void enterPassiveMode() {
         out.println(commandConnection.passiveMode());
     }
 
