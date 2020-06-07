@@ -12,6 +12,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.logging.Logger;
 
 import static com.medestin.ftp.client.model.ProtocolCommands.*;
+import static com.medestin.ftp.client.model.ResponseCode.ENTERED_EPSV;
 import static java.lang.String.format;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.logging.Level.SEVERE;
@@ -22,8 +23,11 @@ public class FTPCommandConnection implements AutoCloseable {
     private static final int QUEUE_CAPACITY = 5;
     private static final long QUEUE_POLL_TIMEOUT_MILLIS = 150;
 
+    private String hostname;
     private SocketManager commandSocket;
-    private FeedHandler feed;
+    private FeedHandler commandFeed;
+    private SocketManager passiveSocket;
+    private FeedHandler passiveFeed;
     private final BlockingQueue<String> responseQueue;
 
     public FTPCommandConnection() {
@@ -41,7 +45,8 @@ public class FTPCommandConnection implements AutoCloseable {
         }
         try {
             commandSocket = new SocketManager(hostname, DEFAULT_PORT);
-            this.feed = new FeedHandler(commandSocket::readLine, this::consumeFeed);
+            this.commandFeed = new FeedHandler(commandSocket::readLine, this::consumeFeed);
+            this.hostname = hostname;
             logger.info(format("Successfully connected to %s", hostname));
             return retrieveWelcomeMessage();
         } catch (SocketConnectionException e) {
@@ -66,9 +71,28 @@ public class FTPCommandConnection implements AutoCloseable {
         return fromLine(readAll());
     }
 
+    public CommandResponse list() {
+        commandSocket.writeLine(MLSD.command());
+        return fromLine(readAll());
+    }
+
     public CommandResponse passiveMode() {
         commandSocket.writeLine(EPSV.command());
-        return fromLine(readAll());
+        CommandResponse response = fromLine(readAll());
+        if(response.code == ENTERED_EPSV.code()) {
+            String[] split = response.message.split("\\|\\|\\|");
+            int port = Integer.parseInt(split[1].substring(0, split[1].length()-2));
+            try {
+                this.passiveSocket = new SocketManager(hostname, port);
+                this.passiveFeed = new FeedHandler(passiveSocket::readLine, this::consumeFeed);
+            } catch (SocketConnectionException e) {
+                String errorMessage = String.format("Couldn't connect to passive port %s:%s", hostname, port);
+                FTPCommandConnectionException ftpCommandConnectionException = new FTPCommandConnectionException(errorMessage, e);
+                logger.log(SEVERE, errorMessage, ftpCommandConnectionException);
+                throw ftpCommandConnectionException;
+            }
+        }
+        return response;
     }
 
     private CommandResponse retrieveWelcomeMessage() {
@@ -76,6 +100,9 @@ public class FTPCommandConnection implements AutoCloseable {
     }
 
     private CommandResponse fromLine(String line) {
+        if(line.length() < 3) {
+            throw new FTPCommandConnectionException(String.format("Line '%s' is too short, invalid", line));
+        }
         int code = Integer.parseInt(line.substring(0, 3));
         return new CommandResponse(code, line);
     }
@@ -115,13 +142,21 @@ public class FTPCommandConnection implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        if (feed != null) {
-            feed.close();
-            logger.info("Closed feed");
+        if (commandFeed != null) {
+            commandFeed.close();
+            logger.info("Closed command feed");
         }
         if (commandSocket != null) {
             commandSocket.close();
             logger.info("Closed command socket");
+        }
+        if (passiveFeed != null) {
+            passiveFeed.close();
+            logger.info("Closed passive feed");
+        }
+        if (passiveSocket != null) {
+            passiveSocket.close();
+            logger.info("Closed passive socket");
         }
     }
 }

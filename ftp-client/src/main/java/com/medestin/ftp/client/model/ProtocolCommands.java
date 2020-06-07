@@ -3,9 +3,10 @@ package com.medestin.ftp.client.model;
 public enum ProtocolCommands {
 
     EPSV("EPSV"),
-    USER("USER"),
+    MLSD("MLSD"),
     PASS("PASS"),
-    PWD("PWD");
+    PWD("PWD"),
+    USER("USER");
 
     private final String command;
 

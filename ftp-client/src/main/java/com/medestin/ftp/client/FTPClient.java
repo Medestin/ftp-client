@@ -14,7 +14,6 @@ public class FTPClient implements AutoCloseable {
     private final PrintStream out;
 
     private final FTPCommandConnection commandConnection;
-    private int passivePort;
 
     public FTPClient() {
         this.out = System.out;
@@ -40,14 +39,12 @@ public class FTPClient implements AutoCloseable {
         out.println(commandConnection.directory().message);
     }
 
+    public void list() {
+       out.println(commandConnection.list().message);
+    }
+
     public void enterPassiveMode() {
-        CommandResponse response = commandConnection.passiveMode();
-        if(response.code == ENTERED_EPSV.code()) {
-            String[] split = response.message.split("\\|\\|\\|");
-            int port = Integer.parseInt(split[1].substring(0, split[1].length()-2));
-            passivePort = port;
-            out.println(response.message);
-        }
+        out.println(commandConnection.passiveMode());
     }
 
     @Override

@@ -10,6 +10,7 @@ public class Main {
         client.logIn("user", "password");
         client.currentLocation();
         client.enterPassiveMode();
+        client.list();
 
         client.close();
     }
