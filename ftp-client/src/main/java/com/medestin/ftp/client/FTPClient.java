@@ -42,7 +42,7 @@ public class FTPClient implements AutoCloseable {
 
     public void list() {
         enterPassiveMode();
-        out.println(commandConnection.list().message);
+        out.println(commandConnection.list());
     }
 
     public void retrieve(String filename) {

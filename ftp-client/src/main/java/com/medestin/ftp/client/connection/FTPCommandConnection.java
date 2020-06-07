@@ -26,12 +26,14 @@ public class FTPCommandConnection implements AutoCloseable {
     private String hostname;
     private SocketManager commandSocket;
     private FeedHandler commandFeed;
+    private final BlockingQueue<String> commandQueue;
     private SocketManager passiveSocket;
     private FeedHandler passiveFeed;
-    private final BlockingQueue<String> responseQueue;
+    private final BlockingQueue<String> passiveQueue;
 
     public FTPCommandConnection() {
-        this.responseQueue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
+        this.commandQueue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
+        this.passiveQueue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
     }
 
     public CommandResponse connect(String hostname) {
@@ -45,7 +47,7 @@ public class FTPCommandConnection implements AutoCloseable {
         }
         try {
             commandSocket = new SocketManager(hostname, DEFAULT_PORT);
-            this.commandFeed = new FeedHandler(commandSocket::readLine, this::consumeFeed);
+            this.commandFeed = new FeedHandler(commandSocket::readLine, this::commandFeed);
             this.hostname = hostname;
             logger.info(format("Successfully connected to %s", hostname));
             return retrieveWelcomeMessage();
@@ -58,27 +60,27 @@ public class FTPCommandConnection implements AutoCloseable {
 
     public CommandResponse user(String username) {
         commandSocket.writeLine(String.join(" ", USER.command(), username));
-        return fromLine(readAll());
+        return fromLine(readAllCommands());
     }
 
     public CommandResponse password(String password) {
         commandSocket.writeLine(String.join(" ", PASS.command(), password));
-        return fromLine(readAll());
+        return fromLine(readAllCommands());
     }
 
     public CommandResponse directory() {
         commandSocket.writeLine(PWD.command());
-        return fromLine(readAll());
+        return fromLine(readAllCommands());
     }
 
     public CommandResponse list() {
         commandSocket.writeLine(MLSD.command());
-        return fromLine(readAll());
+        return fromLine(readAllCommands(), readAllPassive());
     }
 
     public CommandResponse retrieve(String filename) {
         commandSocket.writeLine(String.join(" ", RETR.command(), filename));
-        return fromLine(readAll());
+        return fromLine(readAllCommands(), readAllPassive());
     }
 
     public CommandResponse passiveMode() {
@@ -91,13 +93,13 @@ public class FTPCommandConnection implements AutoCloseable {
             throw ftpCommandConnectionException;
         }
         commandSocket.writeLine(EPSV.command());
-        CommandResponse response = fromLine(readAll());
+        CommandResponse response = fromLine(readAllCommands());
         if(response.code == ENTERED_EPSV.code()) {
             String[] split = response.message.split("\\|\\|\\|");
             int port = Integer.parseInt(split[1].substring(0, split[1].length()-2));
             try {
                 this.passiveSocket = new SocketManager(hostname, port);
-                this.passiveFeed = new FeedHandler(passiveSocket::readLine, this::consumeFeed);
+                this.passiveFeed = new FeedHandler(passiveSocket::readLine, this::passiveFeed);
             } catch (SocketConnectionException e) {
                 String errorMessage = String.format("Couldn't connect to passive port %s:%s", hostname, port);
                 FTPCommandConnectionException ftpCommandConnectionException = new FTPCommandConnectionException(errorMessage, e);
@@ -109,7 +111,7 @@ public class FTPCommandConnection implements AutoCloseable {
     }
 
     private CommandResponse retrieveWelcomeMessage() {
-        return fromLine(readAll());
+        return fromLine(readAllCommands());
     }
 
     private CommandResponse fromLine(String line) {
@@ -120,19 +122,37 @@ public class FTPCommandConnection implements AutoCloseable {
         return new CommandResponse(code, line);
     }
 
-    private String readAll() {
+    private CommandResponse fromLine(String line, String passive) {
+        if(line.length() < 3) {
+            throw new FTPCommandConnectionException(String.format("Line '%s' is too short, invalid", line));
+        }
+        int code = Integer.parseInt(line.substring(0, 3));
+        return new CommandResponse(code, line, passive);
+    }
+
+    private String readAllCommands() {
         List<String> lines = new ArrayList<>();
-        String line = readLineOrWait();
+        String line = readCommandLineOrWait();
         while (!"".equals(line)) {
             lines.add(line);
-            line = readLineOrWait();
+            line = readCommandLineOrWait();
         }
         return String.join("\n", lines);
     }
 
-    private String readLineOrWait() {
+    private String readAllPassive() {
+        List<String> lines = new ArrayList<>();
+        String line = readPassiveLineOrWait();
+        while (!"".equals(line)) {
+            lines.add(line);
+            line = readPassiveLineOrWait();
+        }
+        return String.join("\n", lines);
+    }
+
+    private String readCommandLineOrWait() {
         try {
-            String line = responseQueue.poll(QUEUE_POLL_TIMEOUT_MILLIS, MILLISECONDS);
+            String line = commandQueue.poll(QUEUE_POLL_TIMEOUT_MILLIS, MILLISECONDS);
             return line != null ? line : "";
         } catch (InterruptedException e) {
             String errorMessage = "Exception while reading message from queue";
@@ -142,9 +162,32 @@ public class FTPCommandConnection implements AutoCloseable {
         }
     }
 
-    private void consumeFeed(String feed) {
+    private String readPassiveLineOrWait() {
         try {
-            responseQueue.put(feed);
+            String line = passiveQueue.poll(QUEUE_POLL_TIMEOUT_MILLIS, MILLISECONDS);
+            return line != null ? line : "";
+        } catch (InterruptedException e) {
+            String errorMessage = "Exception while reading message from queue";
+            FTPCommandConnectionException ftpCommandConnectionException = new FTPCommandConnectionException(errorMessage, e);
+            logger.log(SEVERE, errorMessage, ftpCommandConnectionException);
+            throw ftpCommandConnectionException;
+        }
+    }
+
+    private void commandFeed(String feed) {
+        try {
+            commandQueue.put(feed);
+        } catch (InterruptedException e) {
+            String errorMessage = String.format("Exception while putting message '%s' in queue", feed);
+            FTPCommandConnectionException ftpCommandConnectionException = new FTPCommandConnectionException(errorMessage, e);
+            logger.log(SEVERE, errorMessage, ftpCommandConnectionException);
+            throw ftpCommandConnectionException;
+        }
+    }
+
+    private void passiveFeed(String feed) {
+        try {
+            passiveQueue.put(feed);
         } catch (InterruptedException e) {
             String errorMessage = String.format("Exception while putting message '%s' in queue", feed);
             FTPCommandConnectionException ftpCommandConnectionException = new FTPCommandConnectionException(errorMessage, e);
