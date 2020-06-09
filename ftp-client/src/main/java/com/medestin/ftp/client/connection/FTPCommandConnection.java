@@ -1,10 +1,12 @@
 package com.medestin.ftp.client.connection;
 
 import com.medestin.ftp.utils.feed.FeedHandler;
+import com.medestin.ftp.utils.file.builder.FileBuilder;
 import com.medestin.ftp.utils.logger.FileLogger;
 import com.medestin.ftp.utils.socket.SocketConnectionException;
 import com.medestin.ftp.utils.socket.SocketManager;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -23,15 +25,20 @@ public class FTPCommandConnection implements AutoCloseable {
     private static final int QUEUE_CAPACITY = 5;
     private static final long QUEUE_POLL_TIMEOUT_MILLIS = 150;
 
+    private final FileBuilder fileBuilder;
+
     private String hostname;
+
     private SocketManager commandSocket;
     private FeedHandler commandFeed;
     private final BlockingQueue<String> commandQueue;
+
     private SocketManager passiveSocket;
     private FeedHandler passiveFeed;
     private final BlockingQueue<String> passiveQueue;
 
     public FTPCommandConnection() {
+        this.fileBuilder = new FileBuilder();
         this.commandQueue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
         this.passiveQueue = new ArrayBlockingQueue<>(QUEUE_CAPACITY);
     }
@@ -80,7 +87,13 @@ public class FTPCommandConnection implements AutoCloseable {
 
     public CommandResponse retrieve(String filename) {
         commandSocket.writeLine(String.join(" ", RETR.command(), filename));
-        return fromLine(readAllCommands(), readAllPassive());
+        CommandResponse response = fromLine(readAllCommands(), readAllPassive());
+        try {
+            fileBuilder.writeToFile(filename, response.passivePayload);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return response;
     }
 
     public CommandResponse passiveMode() {

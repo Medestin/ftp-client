@@ -1,3 +1,6 @@
+#transferred folder - default place for transferred files
+transferred/**
+
 #compiled classes directory
 **/target/**
 
