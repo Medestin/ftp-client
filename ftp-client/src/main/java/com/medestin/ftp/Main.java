@@ -1,17 +1,10 @@
 package com.medestin.ftp;
 
-import com.medestin.ftp.client.FTPClient;
+import com.medestin.ftp.client.ui.ClientInterface;
 
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        FTPClient client = new FTPClient();
-        client.connect("localhost");
-        client.logIn("user", "password");
-        client.currentLocation();
-        client.list();
-        client.retrieve("example.txt");
-
-        client.close();
+        new ClientInterface();
     }
 }

@@ -21,6 +21,11 @@ public class FTPClient implements AutoCloseable {
         this.commandConnection = new FTPCommandConnection();
     }
 
+    public FTPClient(PrintStream out) {
+        this.out = out;
+        this.commandConnection = new FTPCommandConnection();
+    }
+
     public void connect(String hostname) {
         CommandResponse response = commandConnection.connect(hostname);
         out.println(response.message);
